@@ -1,0 +1,9 @@
+aiohttp==3.7.4
+pyaudio==0.2.11
+websockets==10.4
+google-cloud-speech==2.17.0
+openai==0.27.0
+sounddevice==0.4.5
+numpy==1.22.4
+matplotlib==3.5.3
+python-dotenv==1.0.0
