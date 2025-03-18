@@ -4,9 +4,12 @@ import { mainLoop_impl } from "../main_loop/main_loop";
 import { AppState } from "../state/state";
 import { Plugin } from "../plugins/plugin";
 
-// Using Python 3.9 specifically
+// The actual Python path is determined at runtime by checking environment
+// The INSTALL.bat script will try to find Python 3.9 specifically
 export const ENV = {
-    PYTHON_PATH: "python3.9", // Will be overridden by the INSTALL.bat script with the actual path
+    // Default to 'python', but the application will try to detect Python 3.9
+    // during installation and set the actual path in INSTALL.bat
+    PYTHON_PATH: "python",
 };
 
 export class WaifuApp {
