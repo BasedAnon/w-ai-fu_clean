@@ -16,6 +16,7 @@ export class AppState {
     devices: Record<string, number>;
     memory: Memory;
     bad_words: string[];
+    use_direct_api: boolean; // Added for the direct NovelAI API implementation
 
     constructor() {
         this.command_queue = new CommandQueue();
@@ -27,5 +28,6 @@ export class AppState {
         this.devices = {};
         this.memory = new Memory();
         this.bad_words = getBadWords();
+        this.use_direct_api = true; // Default to using the direct API implementation
     }
 }

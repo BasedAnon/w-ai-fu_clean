@@ -4,10 +4,12 @@ import { LiveChat } from "../live_chat/live_chat_interface";
 import { LiveChatTwitch } from "../live_chat/twitch_chat";
 import { LargeLanguageModel } from "../llm/llm_interface";
 import { LargeLanguageModelNovelAI } from "../llm/llm_novelai";
+import { LargeLanguageModelNovelAIDirect } from "../llm/llm_novelai_direct"; // Import new direct LLM implementation
 import { LargeLanguageModelOpenAI } from "../llm/llm_openai";
 import { Config } from "../config/config";
 import { TextToSpeech } from "../tts/tts_interface";
 import { TextToSpeechNovelAI } from "../tts/tts_novelai";
+import { TextToSpeechNovelAIDirect } from "../tts/tts_novelai_direct"; // Import new direct TTS implementation
 import { Dependencies } from "./dependencies";
 import { InputSystemVoice } from "../input/input_voice";
 import { LiveChatNone } from "../live_chat/live_chat_none";
@@ -27,10 +29,19 @@ export async function loadDependencies(config: Config): Promise<Dependencies> {
 
     let llm: LargeLanguageModel;
     let llm_provider = config.large_language_model.llm_provider.value;
+    
+    // Check for direct API implementation option
+    const use_direct_api = wAIfu.state?.use_direct_api || false;
+    
     switch (llm_provider) {
         case "novelai":
             {
-                llm = new LargeLanguageModelNovelAI();
+                if (use_direct_api) {
+                    llm = new LargeLanguageModelNovelAIDirect();
+                    IO.debug("Using NovelAI Direct API for LLM.");
+                } else {
+                    llm = new LargeLanguageModelNovelAI();
+                }
             }
             break;
         case "openai":
@@ -44,7 +55,12 @@ export async function loadDependencies(config: Config): Promise<Dependencies> {
             }
             break;
         default:
-            llm = new LargeLanguageModelNovelAI();
+            if (use_direct_api) {
+                llm = new LargeLanguageModelNovelAIDirect();
+                IO.debug("Using NovelAI Direct API for LLM.");
+            } else {
+                llm = new LargeLanguageModelNovelAI();
+            }
             break;
     }
 
@@ -53,7 +69,12 @@ export async function loadDependencies(config: Config): Promise<Dependencies> {
     switch (tts_provider) {
         case "novelai":
             {
-                tts = new TextToSpeechNovelAI();
+                if (use_direct_api) {
+                    tts = new TextToSpeechNovelAIDirect();
+                    IO.debug("Using NovelAI Direct API for TTS.");
+                } else {
+                    tts = new TextToSpeechNovelAI();
+                }
             }
             break;
         case "azure":
@@ -62,7 +83,12 @@ export async function loadDependencies(config: Config): Promise<Dependencies> {
             }
             break;
         default:
-            tts = new TextToSpeechNovelAI();
+            if (use_direct_api) {
+                tts = new TextToSpeechNovelAIDirect();
+                IO.debug("Using NovelAI Direct API for TTS.");
+            } else {
+                tts = new TextToSpeechNovelAI();
+            }
             break;
     }
 
@@ -97,10 +123,8 @@ export async function loadDependencies(config: Config): Promise<Dependencies> {
 
     IO.debug("Constructed dependencies.");
 
-    // Now this is something great:
     // Since all our modules are independent, they don't require a specific
     // order to boot. That means we can initialize everything at once.
-    // Speed 📈
     await Promise.allSettled([
         input_sys.initialize(),
         llm.initialize(),
@@ -109,7 +133,7 @@ export async function loadDependencies(config: Config): Promise<Dependencies> {
     ]);
 
     IO.debug(
-        `LLM: ${llm_provider}, TTS: ${tts_provider}, STT: ${
+        `LLM: ${llm_provider}${use_direct_api ? ' (Direct API)' : ''}, TTS: ${tts_provider}${use_direct_api ? ' (Direct API)' : ''}, STT: ${
             wAIfu.state!.config.speech_to_text.stt_provider.value
         }, LIVE: ${live_chat_provider}`
     );
