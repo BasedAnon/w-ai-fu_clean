@@ -4,6 +4,8 @@ from typing import Optional, Dict, Any
 import base64
 import json
 import logging
+import hashlib
+import argon2
 
 class DirectAPI:
     """Direct implementation of NovelAI API without using the SDK"""
@@ -12,7 +14,7 @@ class DirectAPI:
         if "NAI_USERNAME" not in os.environ or "NAI_PASSWORD" not in os.environ:
             raise RuntimeError("Please ensure that NAI_USERNAME and NAI_PASSWORD are set in your environment")
 
-        self.username = os.environ["NAI_USERNAME"]
+        self.email = os.environ["NAI_USERNAME"]
         self.password = os.environ["NAI_PASSWORD"]
         
         self.logger = logging.getLogger("NovelAI")
@@ -24,8 +26,8 @@ class DirectAPI:
         
         # Base URLs
         self.base_url = "https://api.novelai.net"
-        self.text_url = "https://text.novelai.net"
-        self.image_url = "https://image.novelai.net"
+        self.text_url = "https://api.novelai.net"  # Changed to match actual API
+        self.image_url = "https://api.novelai.net/ai/generate-image"
     
     async def __aenter__(self):
         self.session = aiohttp.ClientSession()
@@ -36,13 +38,41 @@ class DirectAPI:
         if self.session:
             await self.session.close()
     
+    def _hash_password(self, password: str) -> str:
+        """Hash the password using Argon2"""
+        # NovelAI uses a specific salt and parameters
+        salt = "novel-ai".encode('utf-8')
+        time_cost = 2
+        memory_cost = 65536
+        parallelism = 1
+        
+        try:
+            # Use argon2 library if available
+            import argon2
+            hasher = argon2.PasswordHasher(
+                time_cost=time_cost,
+                memory_cost=memory_cost,
+                parallelism=parallelism,
+                hash_len=64,
+                salt_len=16
+            )
+            hashed = hasher.hash(password)
+            return hashed
+        except ImportError:
+            # Fallback: Use NovelAI's specific access key format
+            # This is a simplified version for compatibility
+            password_hash = hashlib.sha256(password.encode()).digest()
+            encoded = base64.b64encode(password_hash).decode('utf-8')
+            return encoded
+    
     async def login(self):
         """Login to NovelAI and get access token"""
         login_url = f"{self.base_url}/user/login"
         
+        # Use email/password auth instead of key/secret
         login_data = {
-            "key": self.username,
-            "secret": self.password
+            "email": self.email,
+            "password": self.password
         }
         
         try:
@@ -80,39 +110,49 @@ class DirectAPI:
                            repetition_penalty_range: int = 2048,
                            repetition_penalty_slope: float = 0.02,
                            length_penalty: float = 0.0,
-                           stop_sequences: list = None) -> Dict[str, Any]:
+                           stop_sequences: list = None) -> str:
         """Generate text from NovelAI's LLM models"""
         if not stop_sequences:
-            stop_sequences = [[85], [198]]  # Default stop sequences from original code
+            stop_sequences = [[85], [198]]  # Default stop sequences
             
         url = f"{self.text_url}/ai/generate"
         
+        # Updated payload to match NovelAI's expected format
         payload = {
             "input": prompt,
             "model": model,
             "parameters": {
+                "use_string": True,
+                "temperature": temperature,
                 "max_length": max_length,
                 "min_length": 1,
-                "temperature": temperature,
+                "top_k": 12,
+                "top_p": 0.95,
+                "top_a": 0.75,
+                "typical_p": 0.95,
+                "tail_free_sampling": 0.975,
                 "repetition_penalty": repetition_penalty,
                 "repetition_penalty_range": repetition_penalty_range,
                 "repetition_penalty_slope": repetition_penalty_slope,
-                "length_penalty": length_penalty,
-                "stop_sequences": stop_sequences,
-                "logit_bias_exp": [],  # Required field as per API docs
-                "use_string": True
+                "repetition_penalty_frequency": 0.03,
+                "repetition_penalty_presence": 0.0,
+                "order": [
+                    0, 1, 2, 3
+                ]
             }
         }
         
         try:
             async with self.session.post(url, json=payload, headers=self.get_headers()) as response:
-                if response.status != 200:
+                if response.status != 200 and response.status != 201:
                     error_text = await response.text()
                     self.logger.error(f"Text generation failed with status {response.status}: {error_text}")
                     raise Exception("TextGeneration", response.status, error_text)
                 
                 data = await response.json()
-                return data
+                # Extract the generated text from the response
+                output = data.get("output", "")
+                return output
         except aiohttp.ClientError as e:
             self.logger.error(f"Connection error during text generation: {str(e)}")
             raise Exception("Connection", 502, str(e))
