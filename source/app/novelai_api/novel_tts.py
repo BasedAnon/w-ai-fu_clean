@@ -6,6 +6,20 @@ import threading
 import uuid
 import subprocess
 
+# Ensure required packages are installed
+try:
+    import aiohttp
+except ImportError:
+    print("Installing aiohttp package...", file=sys.stderr)
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "aiohttp==3.7.4"])
+        import aiohttp
+        print("Successfully installed aiohttp package.", file=sys.stderr)
+    except Exception as e:
+        print(f"Failed to install aiohttp package: {e}", file=sys.stderr)
+        print("Please run: pip install aiohttp==3.7.4", file=sys.stderr)
+        sys.exit(1)
+
 # Try to import websockets, install it if not found
 try:
     from websockets.sync.client import connect
@@ -105,6 +119,11 @@ async def generate_tts(speak, voice_seed)-> str:
         # Use our direct API instead of the SDK
         tts = await api.generate_voice(text, voice, seed, opus, version)
         new_id = str(uuid.uuid4())
+        
+        # Make sure the audio directory exists
+        if not os.path.exists('audio'):
+            os.makedirs('audio')
+            
         with open(f'audio/{new_id}.mp3', 'wb') as f:
             f.write(tts)
         return new_id
@@ -177,9 +196,10 @@ def prep_handle(message, websocket):
     asyncio.run(handle(message, websocket))
 
 def clear_audio_files():
-    if os.path.isdir('audio') == False:
-        os.mkdir('audio')
+    if not os.path.exists('audio'):
+        os.makedirs('audio')
         return
+        
     dir_list = os.listdir('audio')
     for file in dir_list:
         try:

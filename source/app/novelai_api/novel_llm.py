@@ -6,6 +6,20 @@ import asyncio
 import time
 import subprocess
 
+# Ensure required packages are installed
+try:
+    import aiohttp
+except ImportError:
+    print("Installing aiohttp package...", file=sys.stderr)
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "aiohttp==3.7.4"])
+        import aiohttp
+        print("Successfully installed aiohttp package.", file=sys.stderr)
+    except Exception as e:
+        print(f"Failed to install aiohttp package: {e}", file=sys.stderr)
+        print("Please run: pip install aiohttp==3.7.4", file=sys.stderr)
+        sys.exit(1)
+
 # Try to import websockets, install it if not found
 try:
     from websockets.sync.client import connect
