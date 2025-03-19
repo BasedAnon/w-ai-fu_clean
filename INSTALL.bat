@@ -6,20 +6,12 @@ call npm ci --no-audit
 call npm fund
 
 echo Installing python dependencies ...
-REM Try to detect Python 3.9 installation
+REM Find and use Python 3.9 specifically
 
 REM Default to regular python command
 set PYTHON_COMMAND=python
 
-REM Try Python 3.9 specifically if installed and in PATH
-python -m pip --version >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    echo Found Python in PATH
-) else (
-    echo Python not found in PATH
-)
-
-REM Check for common Python 3.9 locations
+REM Check for common Python 3.9 installations
 if exist "C:\Python39\python.exe" (
     set PYTHON_COMMAND=C:\Python39\python.exe
     echo Found Python 3.9 at C:\Python39\python.exe
@@ -38,24 +30,34 @@ if exist "%LOCALAPPDATA%\Programs\Python\Python39\python.exe" (
     goto install_deps
 )
 
-echo WARNING: Could not find Python 3.9. Using default Python installation.
-echo This application works best with Python 3.9.
-echo If you encounter issues, please install Python 3.9 from:
-echo https://www.python.org/downloads/release/python-3913/
+REM Check for Python 3.9 via Python Launcher
+where py >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    py -3.9 -c "print('Python 3.9 check')" >nul 2>nul
+    if %ERRORLEVEL% EQU 0 (
+        set PYTHON_COMMAND=py -3.9
+        echo Found Python 3.9 via Python Launcher
+        goto install_deps
+    )
+)
+
+echo WARNING: Could not find Python 3.9 specifically. Using default Python installation.
+echo This application works best with Python 3.9. If installation fails, please install Python 3.9.
+echo Python 3.9 can be downloaded from: https://www.python.org/downloads/release/python-3913/
 
 :install_deps
 echo Using Python command: %PYTHON_COMMAND%
 
-REM Install everything in requirements.txt
+REM Make sure pip is up to date
+%PYTHON_COMMAND% -m pip install --upgrade pip
+
+REM Install the required packages
+echo Installing core Python packages...
 %PYTHON_COMMAND% -m pip install -r requirements.txt
 
-echo.
-echo NOTE: PyAudio installation may fail which is normal.
-echo If voice input is needed, please install PyAudio manually with these steps:
-echo 1. Download the appropriate wheel file for your Python version from:
-echo    https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
-echo 2. Run: pip install PATH_TO_DOWNLOADED_WHEEL_FILE
-echo.
+REM Specifically ensure websockets is installed
+echo Ensuring websockets package is properly installed...
+%PYTHON_COMMAND% -m pip install websockets==10.4 --force-reinstall
 
 echo Creating shortcut ...
 cscript /nologo install/create_shortcut.vbs
