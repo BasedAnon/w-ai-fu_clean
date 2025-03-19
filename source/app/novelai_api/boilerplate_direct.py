@@ -4,7 +4,10 @@ from typing import Optional, Dict, Any
 import base64
 import json
 import logging
+import hmac
 import hashlib
+import secrets
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 class DirectAPI:
     """Direct implementation of NovelAI API without using the SDK"""
@@ -25,7 +28,7 @@ class DirectAPI:
         
         # Base URLs
         self.base_url = "https://api.novelai.net"
-        self.text_url = "https://api.novelai.net"  # Changed to match actual API
+        self.text_url = "https://api.novelai.net"
         self.image_url = "https://api.novelai.net/ai/generate-image"
     
     async def __aenter__(self):
@@ -37,21 +40,62 @@ class DirectAPI:
         if self.session:
             await self.session.close()
     
+    def _encrypt_password(self, password: str, access_key: str) -> str:
+        """Encrypt password for NovelAI login"""
+        # Convert to bytes
+        password_bytes = password.encode('utf-8')
+        access_key_bytes = access_key.encode('utf-8')
+        
+        # Create HMAC with SHA-256
+        h = hmac.new(access_key_bytes, password_bytes, hashlib.sha512)
+        return base64.b64encode(h.digest()).decode('utf-8')
+    
     async def login(self):
         """Login to NovelAI and get access token"""
-        login_url = f"{self.base_url}/user/login"
-        
-        # Use email/password auth instead of key/secret
-        login_data = {
-            "email": self.email,
-            "password": self.password
-        }
-        
+        # Step 1: Get access key
         try:
+            # First try using the newer access token endpoint
+            login_url = f"{self.base_url}/user/login"
+            
+            # Simple authentication with email and password
+            login_data = {
+                "email": self.email,
+                "password": self.password
+            }
+            
+            async with self.session.post(login_url, json=login_data) as response:
+                if response.status == 200 or response.status == 201:
+                    data = await response.json()
+                    self.api_token = data.get("accessToken")
+                    
+                    if not self.api_token:
+                        raise Exception("Authentication", 401, "No access token received")
+                    
+                    self.logger.info("Successfully authenticated with NovelAI")
+                    return
+                else:
+                    # Try the legacy authentication
+                    error_text = await response.text()
+                    self.logger.error(f"Login failed with status {response.status}: {error_text}")
+                    # Fall through to try legacy login
+            
+            # Try legacy authentication
+            login_url = f"{self.base_url}/user/login"
+            
+            # In legacy mode, create an access key
+            access_key = secrets.token_hex(32)
+            encrypted_password = self._encrypt_password(self.password, access_key)
+            
+            login_data = {
+                "key": self.email,
+                "secret": encrypted_password,
+                "access_key": access_key
+            }
+            
             async with self.session.post(login_url, json=login_data) as response:
                 if response.status != 201 and response.status != 200:
                     error_text = await response.text()
-                    self.logger.error(f"Login failed with status {response.status}: {error_text}")
+                    self.logger.error(f"Legacy login failed with status {response.status}: {error_text}")
                     raise Exception("Authentication", 401, f"Login failed: {error_text}")
                 
                 data = await response.json()
@@ -60,7 +104,8 @@ class DirectAPI:
                 if not self.api_token:
                     raise Exception("Authentication", 401, "No access token received")
                 
-                self.logger.info("Successfully authenticated with NovelAI")
+                self.logger.info("Successfully authenticated with NovelAI using legacy method")
+                
         except aiohttp.ClientError as e:
             self.logger.error(f"Connection error: {str(e)}")
             raise Exception("Connection", 502, str(e))
