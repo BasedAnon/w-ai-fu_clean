@@ -46,13 +46,16 @@ echo https://www.python.org/downloads/release/python-3913/
 :install_deps
 echo Using Python command: %PYTHON_COMMAND%
 
-REM Install everything except PyAudio first
+REM Install everything in requirements.txt
 %PYTHON_COMMAND% -m pip install -r requirements.txt
 
-REM Install PyAudio using pipwin (more reliable on Windows)
-echo Installing PyAudio via pipwin (workaround for common installation issues)...
-%PYTHON_COMMAND% -m pip install pipwin
-%PYTHON_COMMAND% -m pipwin install pyaudio
+echo.
+echo NOTE: PyAudio installation may fail which is normal.
+echo If voice input is needed, please install PyAudio manually with these steps:
+echo 1. Download the appropriate wheel file for your Python version from:
+echo    https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
+echo 2. Run: pip install PATH_TO_DOWNLOADED_WHEEL_FILE
+echo.
 
 echo Creating shortcut ...
 cscript /nologo install/create_shortcut.vbs

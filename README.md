@@ -32,6 +32,15 @@ This is a modified version of [w-AI-fu](https://github.com/GXiaoyang/w-AI-fu_v2)
    - The script will automatically search for Python 3.9 installation.
    - It will install both NodeJS and Python dependencies.
 
+5. **Manual PyAudio Installation** (only if you need voice input):
+   - PyAudio often fails to install via pip because it requires C++ build tools
+   - Download the appropriate wheel file for your Python 3.9 from:
+     https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
+   - Install it manually with pip:
+     ```
+     pip install PATH_TO_DOWNLOADED_WHEEL_FILE
+     ```
+
 ## Usage
 
 The application behaves the same as the original w-AI-fu but uses direct API calls to NovelAI instead of their SDK.
@@ -42,6 +51,7 @@ By default, the application uses the direct API implementation. If you want to s
 
 - If you encounter issues during installation, make sure Python 3.9 is installed and properly added to your PATH.
 - If the installation script cannot find Python 3.9, you may need to modify the INSTALL.bat file to point to your specific Python 3.9 installation path.
+- If you get errors related to PyAudio, follow the manual PyAudio installation instructions in step 5 above.
 
 ## Credits
 
