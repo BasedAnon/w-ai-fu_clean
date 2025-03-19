@@ -28,21 +28,48 @@ const cproc = __importStar(require("child_process"));
 const Waifu_1 = require("../types/Waifu");
 const io_1 = require("../io/io");
 function getDevices() {
-    let proc = cproc.spawnSync(Waifu_1.ENV.PYTHON_PATH, ["audio_devices.py"], {
-        cwd: process.cwd() + "/source/app/devices/",
-        shell: false,
-    });
-    let err = proc.stderr;
-    if (err !== null) {
-        let err_str = err.toString("utf8");
-        if (err_str !== "")
-            io_1.IO.error(err_str);
+    try {
+        let proc = cproc.spawnSync(Waifu_1.ENV.PYTHON_PATH, ["audio_devices.py"], {
+            cwd: process.cwd() + "/source/app/devices/",
+            shell: false,
+        });
+        
+        let err = proc.stderr;
+        if (err !== null) {
+            let err_str = err.toString("utf8");
+            if (err_str !== "") {
+                io_1.IO.error(err_str);
+                // Return empty object for error case
+                return {};
+            }
+        }
+        
+        let output = proc.stdout;
+        if (!output || output.length === 0) {
+            io_1.IO.warn("No audio devices found or voice input disabled");
+            return {};
+        }
+        
+        const outputStr = output.toString("utf8");
+        
+        // Handle potential empty or invalid JSON
+        try {
+            return JSON.parse(outputStr);
+        } catch (e) {
+            io_1.IO.error("Failed to parse audio devices: " + e.message);
+            io_1.IO.debug("Raw output was: " + outputStr);
+            return {};
+        }
+    } catch (e) {
+        io_1.IO.error("Failed to get audio devices: " + e.message);
+        return {};
     }
-    let output = proc.stdout;
-    return JSON.parse(output.toString("utf8"));
 }
 exports.getDevices = getDevices;
 function getDeviceIndex(device_name) {
+    if (!Waifu_1.wAIfu.state || !Waifu_1.wAIfu.state.devices) {
+        return 0;
+    }
     return Waifu_1.wAIfu.state.devices[device_name] || 0;
 }
 exports.getDeviceIndex = getDeviceIndex;
