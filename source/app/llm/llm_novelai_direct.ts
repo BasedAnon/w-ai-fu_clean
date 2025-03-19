@@ -23,6 +23,9 @@ export class LargeLanguageModelNovelAIDirect implements LargeLanguageModel {
             env: {
                 NAI_USERNAME: wAIfu.state!.auth["novelai"]["mail"],
                 NAI_PASSWORD: wAIfu.state!.auth["novelai"]["password"],
+                NAI_API_KEY: wAIfu.state!.auth["novelai"]["api_key"],
+                NAI_USE_API_KEY: wAIfu.state!.auth["novelai"]["use_api_key"] ? "true" : "false",
+                CWD: process.cwd(),
             },
             detached: false,
             shell: false,
