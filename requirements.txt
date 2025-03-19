@@ -1,11 +1,11 @@
 aiohttp==3.7.4
-# Use a pre-built wheel for PyAudio to avoid compilation issues
-# If this doesn't work, the user will need to install PyAudio manually
-# For Windows: pip install pipwin && pipwin install pyaudio
 websockets==10.4
-google-cloud-speech==2.17.0
 openai==0.27.0
-sounddevice==0.4.5
 numpy==1.22.4
 matplotlib==3.5.3
 python-dotenv==1.0.0
+# PyAudio and speech recognition libraries are not required for text-only input
+# If voice input is needed in the future, manually install:
+# google-cloud-speech==2.17.0
+# sounddevice==0.4.5
+# PyAudio (download appropriate wheel from https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio)
