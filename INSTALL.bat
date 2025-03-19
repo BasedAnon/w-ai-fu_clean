@@ -45,7 +45,14 @@ echo https://www.python.org/downloads/release/python-3913/
 
 :install_deps
 echo Using Python command: %PYTHON_COMMAND%
+
+REM Install everything except PyAudio first
 %PYTHON_COMMAND% -m pip install -r requirements.txt
+
+REM Install PyAudio using pipwin (more reliable on Windows)
+echo Installing PyAudio via pipwin (workaround for common installation issues)...
+%PYTHON_COMMAND% -m pip install pipwin
+%PYTHON_COMMAND% -m pipwin install pyaudio
 
 echo Creating shortcut ...
 cscript /nologo install/create_shortcut.vbs
