@@ -59,48 +59,71 @@ REM Specifically ensure websockets is installed
 echo Ensuring websockets package is properly installed...
 %PYTHON_COMMAND% -m pip install websockets==10.4 --force-reinstall
 
-REM Install PyAudio automatically by downloading the appropriate wheel file
+REM Install PyAudio using a Python script that downloads the wheel
 echo Installing PyAudio...
 mkdir install\temp 2>nul
 
-REM Detect Python version and architecture to determine correct wheel file
-%PYTHON_COMMAND% -c "import sys; open('install/temp/pyver.txt', 'w').write('{}{}{}'.format(sys.version_info.major, sys.version_info.minor, '64' if sys.maxsize > 2**32 else '32'))"
+REM Create a Python script to detect version and download/install PyAudio
+echo import sys, os, urllib.request, subprocess > install\temp\install_pyaudio.py
+echo from urllib.error import URLError >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo def main(): >> install\temp\install_pyaudio.py
+echo     arch = "64" if sys.maxsize > 2**32 else "32" >> install\temp\install_pyaudio.py
+echo     version = f"{sys.version_info.major}{sys.version_info.minor}" >> install\temp\install_pyaudio.py
+echo     print(f"Detected Python {version}{arch}") >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo     if version != "39": >> install\temp\install_pyaudio.py
+echo         print("PyAudio auto-installation only supports Python 3.9") >> install\temp\install_pyaudio.py
+echo         return False >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo     wheel_url = "" >> install\temp\install_pyaudio.py
+echo     if arch == "64": >> install\temp\install_pyaudio.py
+echo         wheel_url = "https://download.lfd.uci.edu/pythonlibs/archived/PyAudio-0.2.11-cp39-cp39-win_amd64.whl" >> install\temp\install_pyaudio.py
+echo         wheel_filename = "PyAudio-0.2.11-cp39-cp39-win_amd64.whl" >> install\temp\install_pyaudio.py
+echo     else: >> install\temp\install_pyaudio.py
+echo         wheel_url = "https://download.lfd.uci.edu/pythonlibs/archived/PyAudio-0.2.11-cp39-cp39-win32.whl" >> install\temp\install_pyaudio.py
+echo         wheel_filename = "PyAudio-0.2.11-cp39-cp39-win32.whl" >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo     wheel_path = os.path.join("install", "temp", wheel_filename) >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo     print(f"Downloading PyAudio wheel from {wheel_url}...") >> install\temp\install_pyaudio.py
+echo     try: >> install\temp\install_pyaudio.py
+echo         urllib.request.urlretrieve(wheel_url, wheel_path) >> install\temp\install_pyaudio.py
+echo     except URLError as e: >> install\temp\install_pyaudio.py
+echo         print(f"Error downloading wheel: {e}") >> install\temp\install_pyaudio.py
+echo         return False >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo     if not os.path.exists(wheel_path): >> install\temp\install_pyaudio.py
+echo         print("Failed to download wheel file") >> install\temp\install_pyaudio.py
+echo         return False >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo     filesize = os.path.getsize(wheel_path) >> install\temp\install_pyaudio.py
+echo     if filesize < 1000: # File too small, probably an error >> install\temp\install_pyaudio.py
+echo         print(f"Downloaded file is too small ({filesize} bytes). Likely not a valid wheel.") >> install\temp\install_pyaudio.py
+echo         return False >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo     print(f"Installing PyAudio wheel ({filesize} bytes)...") >> install\temp\install_pyaudio.py
+echo     result = subprocess.run([sys.executable, "-m", "pip", "install", wheel_path], capture_output=True, text=True) >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo     if result.returncode != 0: >> install\temp\install_pyaudio.py
+echo         print(f"Installation failed with code {result.returncode}") >> install\temp\install_pyaudio.py
+echo         print(f"Error: {result.stderr}") >> install\temp\install_pyaudio.py
+echo         return False >> install\temp\install_pyaudio.py
+echo     else: >> install\temp\install_pyaudio.py
+echo         print("PyAudio installed successfully.") >> install\temp\install_pyaudio.py
+echo         return True >> install\temp\install_pyaudio.py
+echo. >> install\temp\install_pyaudio.py
+echo if __name__ == "__main__": >> install\temp\install_pyaudio.py
+echo     success = main() >> install\temp\install_pyaudio.py
+echo     sys.exit(0 if success else 1) >> install\temp\install_pyaudio.py
 
-set /p PYVERSION=<install\temp\pyver.txt
-echo Detected Python version: %PYVERSION%
-
-REM Define wheel URLs for different Python versions (3.9 only for now)
-set PYAUDIO_WHEEL_URL=
-if "%PYVERSION%"=="3964" (
-    set PYAUDIO_WHEEL_URL=https://download.lfd.uci.edu/pythonlibs/archived/PyAudio-0.2.11-cp39-cp39-win_amd64.whl
-    echo Matched Python 3.9 64-bit
-)
-if "%PYVERSION%"=="3932" (
-    set PYAUDIO_WHEEL_URL=https://download.lfd.uci.edu/pythonlibs/archived/PyAudio-0.2.11-cp39-cp39-win32.whl
-    echo Matched Python 3.9 32-bit
-)
-
-REM Download and install PyAudio wheel if a URL was found
-if not "%PYAUDIO_WHEEL_URL%"=="" (
-    echo Downloading PyAudio wheel from %PYAUDIO_WHEEL_URL%...
-    powershell -Command "Invoke-WebRequest -Uri '%PYAUDIO_WHEEL_URL%' -OutFile 'install\temp\pyaudio.whl'"
-    
-    if exist "install\temp\pyaudio.whl" (
-        echo Installing PyAudio wheel...
-        %PYTHON_COMMAND% -m pip install install\temp\pyaudio.whl
-        
-        if %ERRORLEVEL% EQU 0 (
-            echo PyAudio installed successfully.
-        ) else (
-            echo PyAudio installation failed. Voice input will be disabled.
-            echo You may need to install Microsoft Visual C++ Build Tools.
-        )
-    ) else (
-        echo Failed to download PyAudio wheel. Voice input will be disabled.
-    )
+REM Run the PyAudio installation script
+%PYTHON_COMMAND% install\temp\install_pyaudio.py
+if %ERRORLEVEL% NEQ 0 (
+    echo PyAudio installation failed. Voice input will be disabled.
+    echo You may need to install PyAudio manually.
 ) else (
-    echo Could not determine PyAudio wheel URL for your Python version.
-    echo Voice input will be disabled.
+    echo Voice input functionality should work correctly.
 )
 
 REM Clean up
