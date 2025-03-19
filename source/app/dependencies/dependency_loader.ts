@@ -22,13 +22,20 @@ import { TextToSpeechAzure } from "../tts/tts_azure";
 export async function loadDependencies(config: Config): Promise<Dependencies> {
     let input_sys: InputSystem;
     
-    // Always use text input since voice input requires PyAudio which has installation issues
-    input_sys = new InputSystemText();
-    
-    // Force the config value to be false to avoid any voice input attempts
+    // Now that PyAudio is automatically installed, we can use voice input if enabled
     if (config.speech_to_text.voice_input.value) {
-        config.speech_to_text.voice_input.value = false;
-        IO.debug("Voice input disabled - using text input instead");
+        try {
+            input_sys = new InputSystemVoice();
+            IO.debug("Voice input enabled");
+        } catch (error) {
+            // Fallback to text input if there's an issue with voice input
+            input_sys = new InputSystemText();
+            config.speech_to_text.voice_input.value = false;
+            IO.warn("Failed to initialize voice input, using text input instead: " + error);
+        }
+    } else {
+        input_sys = new InputSystemText();
+        IO.debug("Text input selected (voice input is disabled in config)");
     }
 
     let llm: LargeLanguageModel;

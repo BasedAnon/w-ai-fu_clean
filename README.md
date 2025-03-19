@@ -14,6 +14,7 @@ This is a modified version of [w-AI-fu](https://github.com/GXiaoyang/w-AI-fu_v2)
 - Same functionality as the original w-AI-fu
 - Automated installation of all dependencies, including PyAudio
 - Toggle between SDK and direct API implementation
+- Voice input support
 
 ## Installation
 
@@ -53,13 +54,14 @@ The application includes automatic installation of all required dependencies:
 
 - **Text-to-Speech (Output)**: The application generates audio via NovelAI's TTS system and plays it through your speakers using the automatically installed PyAudio.
 
-- **Voice Input (Input)**: Voice input is still disabled by default to avoid potential issues, but since PyAudio is now automatically installed, you can enable it if needed.
+- **Voice Input (Input)**: Voice input is now fully supported thanks to automatic PyAudio installation. The application will use voice input if it's enabled in the config.
 
-### Enabling Voice Input (Optional)
+### Voice Input Settings
 
-To enable voice input after installation:
-1. Open `source/app/dependencies/dependency_loader.ts`
-2. Modify the code to use InputSystemVoice when voice_input is true (the commented code is already there)
+Voice input can be configured in the application:
+1. In the application settings, enable the "Voice Input" option
+2. The application will automatically use voice input for commands
+3. PyAudio is automatically installed during setup so no manual steps are required
 
 ## Troubleshooting
 
