@@ -12,9 +12,8 @@ This is a modified version of [w-AI-fu](https://github.com/GXiaoyang/w-AI-fu_v2)
 - Direct Python implementation of NovelAI API calls
 - No dependency on NovelAI SDK
 - Same functionality as the original w-AI-fu
-- Text-only input (voice input disabled to avoid PyAudio installation issues)
+- Automated installation of all dependencies, including PyAudio
 - Toggle between SDK and direct API implementation
-- Auto-installation of required packages
 
 ## Installation
 
@@ -31,8 +30,10 @@ This is a modified version of [w-AI-fu](https://github.com/GXiaoyang/w-AI-fu_v2)
    ```
 
 4. **Run the INSTALL.bat** file:
-   - The script will automatically search for Python 3.9 installation.
-   - It will install both NodeJS and Python dependencies, including websockets.
+   - The script will automatically search for Python 3.9 installation
+   - It will install both NodeJS and Python dependencies
+   - The script will automatically download and install PyAudio (no manual installation needed!)
+   - All dependencies are handled for you, including websockets and PyAudio
 
 ## Usage
 
@@ -42,31 +43,29 @@ By default, the application uses the direct API implementation. If you want to s
 
 ### Auto-Installation of Dependencies
 
-The application will automatically try to install any missing dependencies when it starts:
-- The `websockets` package will be installed if missing
-- This ensures proper functionality without manual package installation
+The application includes automatic installation of all required dependencies:
+- The INSTALL.bat script detects your Python version and architecture
+- It downloads the appropriate PyAudio wheel file directly
+- It installs PyAudio without requiring Visual C++ build tools
+- It ensures the websockets package is properly installed
 
 ### Audio Functionality
 
-- **Text-to-Speech (Output)**: The application will generate audio via NovelAI's TTS system and convert it to WAV files. If PyAudio is not installed, the audio will be generated but not played through your speakers.
+- **Text-to-Speech (Output)**: The application generates audio via NovelAI's TTS system and plays it through your speakers using the automatically installed PyAudio.
 
-- **Voice Input (Input)**: Voice input has been disabled by default to avoid PyAudio installation issues. The application will only use text input.
+- **Voice Input (Input)**: Voice input is still disabled by default to avoid potential issues, but since PyAudio is now automatically installed, you can enable it if needed.
 
-### Optional PyAudio Installation
+### Enabling Voice Input (Optional)
 
-If you want full audio playback functionality:
-
-1. Download and install PyAudio manually from [Unofficial Windows Binaries](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio)
-   ```
-   pip install path\to\downloaded\PyAudio-0.2.11-cp39-cp39-win_amd64.whl
-   ```
-2. To enable voice input, you'll need to modify the dependency_loader.ts file to use InputSystemVoice when voice_input is true
+To enable voice input after installation:
+1. Open `source/app/dependencies/dependency_loader.ts`
+2. Modify the code to use InputSystemVoice when voice_input is true (the commented code is already there)
 
 ## Troubleshooting
 
 - If you encounter issues during installation, make sure Python 3.9 is installed and properly added to your PATH.
 - If the installation script cannot find Python 3.9, you may need to modify the INSTALL.bat file to point to your specific Python 3.9 installation path.
-- Make sure ffmpeg is installed (included in the w-AI-fu release) for audio conversion.
+- If PyAudio installation fails despite the automatic installation, you might need to install Microsoft Visual C++ Build Tools.
 
 ## Credits
 

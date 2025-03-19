@@ -59,6 +59,53 @@ REM Specifically ensure websockets is installed
 echo Ensuring websockets package is properly installed...
 %PYTHON_COMMAND% -m pip install websockets==10.4 --force-reinstall
 
+REM Install PyAudio automatically by downloading the appropriate wheel file
+echo Installing PyAudio...
+mkdir install\temp 2>nul
+
+REM Detect Python version and architecture to determine correct wheel file
+%PYTHON_COMMAND% -c "import sys; open('install/temp/pyver.txt', 'w').write('{}{}{}'.format(sys.version_info.major, sys.version_info.minor, '64' if sys.maxsize > 2**32 else '32'))"
+
+set /p PYVERSION=<install\temp\pyver.txt
+echo Detected Python version: %PYVERSION%
+
+REM Define wheel URLs for different Python versions (3.9 only for now)
+set PYAUDIO_WHEEL_URL=
+if "%PYVERSION%"=="3964" (
+    set PYAUDIO_WHEEL_URL=https://download.lfd.uci.edu/pythonlibs/archived/PyAudio-0.2.11-cp39-cp39-win_amd64.whl
+    echo Matched Python 3.9 64-bit
+)
+if "%PYVERSION%"=="3932" (
+    set PYAUDIO_WHEEL_URL=https://download.lfd.uci.edu/pythonlibs/archived/PyAudio-0.2.11-cp39-cp39-win32.whl
+    echo Matched Python 3.9 32-bit
+)
+
+REM Download and install PyAudio wheel if a URL was found
+if not "%PYAUDIO_WHEEL_URL%"=="" (
+    echo Downloading PyAudio wheel from %PYAUDIO_WHEEL_URL%...
+    powershell -Command "Invoke-WebRequest -Uri '%PYAUDIO_WHEEL_URL%' -OutFile 'install\temp\pyaudio.whl'"
+    
+    if exist "install\temp\pyaudio.whl" (
+        echo Installing PyAudio wheel...
+        %PYTHON_COMMAND% -m pip install install\temp\pyaudio.whl
+        
+        if %ERRORLEVEL% EQU 0 (
+            echo PyAudio installed successfully.
+        ) else (
+            echo PyAudio installation failed. Voice input will be disabled.
+            echo You may need to install Microsoft Visual C++ Build Tools.
+        )
+    ) else (
+        echo Failed to download PyAudio wheel. Voice input will be disabled.
+    )
+) else (
+    echo Could not determine PyAudio wheel URL for your Python version.
+    echo Voice input will be disabled.
+)
+
+REM Clean up
+rmdir /s /q install\temp 2>nul
+
 echo Creating shortcut ...
 cscript /nologo install/create_shortcut.vbs
 
