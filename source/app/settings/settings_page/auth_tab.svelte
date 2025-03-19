@@ -1,324 +1,360 @@
-<!-- Auth Tab -->
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { wAIfu } from "../../types/Waifu";
-    import { writeAuthToFile } from "../../file_system/write_to_disk";
-    import { IO } from "../../io/io";
-    import Checkbox from "../checkbox.svelte";
+  import { createEventDispatcher, onMount } from "svelte";
+  import { wAIfu } from "../../types/Waifu";
+  import { IO } from "../../io/io";
+  import { save_state } from "../../state/state";
+  import PageTitle from "../components/page_title.svelte";
+  import TextField from "../components/text_field.svelte";
+  import Checkbox from "../components/checkbox.svelte";
+  import Section from "../components/section.svelte";
 
-    const mailRegex = new RegExp(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/);
-    const tokenRegex = new RegExp(/^[a-zA-Z0-9-_]+$/);
+  const dispatch = createEventDispatcher();
 
-    // Empty fields
-    let nai_mail = "";
-    let nai_pwd = "";
-    let nai_api_key = "";
-    let nai_use_api_key = false;
+  let save_button_text = "Save";
 
-    let api_token = "";
-    let cai_token = "";
-    let azure_token = "";
-    let azure_region = "";
+  // OpenAI
+  let openai_key = "";
+  let openai_org_id = "";
+  let openai_reverse_proxy = "";
 
-    let twitch_channel = "";
-    let twitch_token = "";
-    let twitch_clientid = "";
-    let twitch_secret = "";
+  // Azure
+  let azure_key = "";
+  let azure_speech_key = "";
 
-    onMount(() => {
-        nai_mail = wAIfu.state!.auth["novelai"]["mail"];
-        nai_pwd = wAIfu.state!.auth["novelai"]["password"];
-        nai_api_key = wAIfu.state!.auth["novelai"]["api_key"];
-        nai_use_api_key = wAIfu.state!.auth["novelai"]["use_api_key"];
+  // DeepL
+  let deepl_key = "";
 
-        api_token = wAIfu.state!.auth["openai"]["token"];
-        cai_token = wAIfu.state!.auth["characterai"]["token"];
-        azure_token = wAIfu.state!.auth["azure"]["token"];
-        azure_region = wAIfu.state!.auth["azure"]["region"];
+  // NovelAI
+  let novelai_mail = "";
+  let novelai_password = "";
+  let novelai_api_key = "";
+  let novelai_use_api_key = false;
 
-        twitch_channel = wAIfu.state!.auth["twitch"]["channel_name"];
-        twitch_token = wAIfu.state!.auth["twitch"]["oauth_token"];
-        twitch_clientid = wAIfu.state!.auth["twitch"]["twitchapp_clientid"];
-        twitch_secret = wAIfu.state!.auth["twitch"]["twitchapp_secret"];
-    });
+  // Google
+  let google_key = "";
 
-    const save = () => {
-        // Validate mail & password
-        if (nai_mail.length > 0 && nai_pwd.length > 0) {
-            if (mailRegex.test(nai_mail) === false) {
-                window.alert("Invalid NovelAI mail!");
-                return;
-            }
-        }
+  // Stability
+  let stability_key = "";
 
-        // NovelAI
-        wAIfu.state!.auth["novelai"]["mail"] = nai_mail;
-        wAIfu.state!.auth["novelai"]["password"] = nai_pwd;
-        wAIfu.state!.auth["novelai"]["api_key"] = nai_api_key;
-        wAIfu.state!.auth["novelai"]["use_api_key"] = nai_use_api_key;
+  // PaLM
+  let palm_key = "";
 
-        // OpenAI
-        wAIfu.state!.auth["openai"]["token"] = api_token;
+  // Anthropic
+  let anthropic_key = "";
 
-        // CharacterAI
-        wAIfu.state!.auth["characterai"]["token"] = cai_token;
+  // ElevenLabs
+  let elevenlabs_key = "";
 
-        // Azure
-        wAIfu.state!.auth["azure"]["token"] = azure_token;
-        wAIfu.state!.auth["azure"]["region"] = azure_region;
+  // Cohereai
+  let cohere_key = "";
 
-        // Twitch
-        wAIfu.state!.auth["twitch"]["channel_name"] = twitch_channel;
-        wAIfu.state!.auth["twitch"]["oauth_token"] = twitch_token;
-        wAIfu.state!.auth["twitch"]["twitchapp_clientid"] = twitch_clientid;
-        wAIfu.state!.auth["twitch"]["twitchapp_secret"] = twitch_secret;
+  // Perplexity
+  let perplexity_key = "";
 
-        // Save changes to disk
-        writeAuthToFile(wAIfu.state!.auth);
-        IO.debug("Saved auth infos.");
+  // Speechify
+  let speechify_key = "";
 
-        // Update UI
-        if (document.getElementById("auth_update")) {
-            (document.getElementById("auth_update") as HTMLElement).style.opacity =
-                "1";
-            // @ts-ignore
-            auth_update_timeout = setTimeout(() => {
-                if (document.getElementById("auth_update")) {
-                    (
-                        document.getElementById(
-                            "auth_update"
-                        ) as HTMLElement
-                    ).style.opacity = "0";
-                }
-            }, 1500);
-        }
+  onMount(() => {
+    if (wAIfu.state) {
+      // OpenAI API key
+      openai_key = wAIfu.state.auth.openai.key || "";
 
-        return;
-    };
+      // OpenAI org ID
+      openai_org_id = wAIfu.state.auth.openai.org_id || "";
 
-    let auth_update_timeout: NodeJS.Timeout | undefined = undefined;
+      openai_reverse_proxy = wAIfu.state.auth.openai.reverse_proxy || "";
+
+      // Azure keys
+      azure_key = wAIfu.state.auth.azure.key || "";
+      azure_speech_key = wAIfu.state.auth.azure.speech_key || "";
+
+      // DeepL API key
+      deepl_key = wAIfu.state.auth.deepl.key || "";
+
+      // NovelAI credentials
+      novelai_mail = wAIfu.state.auth.novelai.mail || "";
+      novelai_password = wAIfu.state.auth.novelai.password || "";
+      novelai_api_key = wAIfu.state.auth.novelai.api_key || "";
+      novelai_use_api_key = wAIfu.state.auth.novelai.use_api_key || false;
+
+      // Google API key
+      google_key = wAIfu.state.auth.google.key || "";
+
+      // Stability API key
+      stability_key = wAIfu.state.auth.stability.key || "";
+
+      // PaLM api key
+      palm_key = wAIfu.state.auth.palm.key || "";
+
+      // Anthropic api key
+      anthropic_key = wAIfu.state.auth.anthropic.key || "";
+
+      // ElevenLabs api key
+      elevenlabs_key = wAIfu.state.auth.elevenlabs.key || "";
+
+      // Cohere API key
+      cohere_key = wAIfu.state.auth.cohere.key || "";
+
+      // Perplexity API key
+      perplexity_key = wAIfu.state.auth.perplexity.key || "";
+
+      // Speechify API key
+      speechify_key = wAIfu.state.auth.speechify.key || "";
+    }
+  });
+
+  function save_auth_config() {
+    save_button_text = "Saving...";
+
+    // OpenAI
+    wAIfu.state.auth.openai.key = openai_key;
+    wAIfu.state.auth.openai.org_id = openai_org_id;
+    wAIfu.state.auth.openai.reverse_proxy = openai_reverse_proxy;
+
+    // Azure
+    wAIfu.state.auth.azure.key = azure_key;
+    wAIfu.state.auth.azure.speech_key = azure_speech_key;
+
+    // DeepL
+    wAIfu.state.auth.deepl.key = deepl_key;
+
+    // NovelAI
+    wAIfu.state.auth.novelai.mail = novelai_mail;
+    wAIfu.state.auth.novelai.password = novelai_password;
+    wAIfu.state.auth.novelai.api_key = novelai_api_key;
+    wAIfu.state.auth.novelai.use_api_key = novelai_use_api_key;
+
+    // Google
+    wAIfu.state.auth.google.key = google_key;
+
+    // Stability
+    wAIfu.state.auth.stability.key = stability_key;
+
+    // PaLM
+    wAIfu.state.auth.palm.key = palm_key;
+
+    // Anthropic
+    wAIfu.state.auth.anthropic.key = anthropic_key;
+
+    // ElevenLabs
+    wAIfu.state.auth.elevenlabs.key = elevenlabs_key;
+
+    // Cohere
+    wAIfu.state.auth.cohere.key = cohere_key;
+
+    // Perplexity
+    wAIfu.state.auth.perplexity.key = perplexity_key;
+
+    // Speechify
+    wAIfu.state.auth.speechify.key = speechify_key;
+
+    try {
+      const save_result = save_state();
+      IO.print("Saved authentication configuration to disk.");
+    } catch (e) {
+      console.error(e);
+      IO.error(
+        "Failed to save authentication configuration to disk. See console for details."
+      );
+    }
+
+    setTimeout(() => {
+      save_button_text = "Save";
+    }, 2000);
+  }
 </script>
 
-<div class="tab_content">
-    <h3>Accounts</h3>
-    <p>
-        Enter your login details for w-AI-fu to use.
-        Only fill in the details for the services you want to use.
-    </p>
-    <br /><br />
+<PageTitle name="Authentication" />
 
-    <div class="section">
-        <h4>NovelAI</h4>
-        <label for="nai_mail">Email</label>
-        <input
-            type="text"
-            name="nai_mail"
-            placeholder="novelai email"
-            bind:value={nai_mail}
-        />
-        <label for="nai_pwd">Password</label>
-        <input
-            type="password"
-            name="nai_pwd"
-            placeholder="novelai password"
-            bind:value={nai_pwd}
-        />
-        <label for="nai_api_key">API Key</label>
-        <input
-            type="password"
-            name="nai_api_key"
-            placeholder="novelai api key"
-            bind:value={nai_api_key}
-        />
-        <div class="checkbox-container">
-            <Checkbox bind:checked={nai_use_api_key} />
-            <label for="nai_use_api_key">Use API Key (preferred method)</label>
-        </div>
-        <div class="hint-text">
-            <p>
-                You can find your API key in your NovelAI account settings. 
-                Using an API key is the recommended authentication method as it's more reliable.
-            </p>
-        </div>
-    </div>
+<div class="grid">
+  <Section name="OpenAI">
+    <TextField
+      label="API Key"
+      bind:value={openai_key}
+      password={true}
+      isVertical={true}
+    />
+    <TextField
+      label="Organization ID (optional)"
+      bind:value={openai_org_id}
+      password={false}
+      isVertical={true}
+    />
+    <TextField
+      label="Reverse Proxy URL (optional)"
+      bind:value={openai_reverse_proxy}
+      password={false}
+      isVertical={true}
+    />
+  </Section>
 
-    <div class="section">
-        <h4>OpenAI</h4>
-        <label for="api_token">API Token</label>
-        <input
-            type="password"
-            name="api_token"
-            placeholder="openai token"
-            bind:value={api_token}
-        />
-    </div>
+  <Section name="NovelAI">
+    <TextField
+      label="Account Email"
+      bind:value={novelai_mail}
+      password={false}
+      isVertical={true}
+    />
+    <TextField
+      label="Account Password"
+      bind:value={novelai_password}
+      password={true}
+      isVertical={true}
+    />
+    <TextField
+      label="API Key (alternative to using email/password)"
+      bind:value={novelai_api_key}
+      password={true}
+      isVertical={true}
+    />
+    <Checkbox
+      label="Use API Key"
+      tooltip="If checked, uses the API Key instead of email/password"
+      bind:checked={novelai_use_api_key}
+    />
+    <Checkbox
+      label="Use Enhanced API (improved reliability)"
+      tooltip="If checked, uses the enhanced Python API for improved reliability"
+      bind:checked={wAIfu.state.config.text_to_speech.novelai_use_enhanced.value}
+    />
+  </Section>
 
-    <div class="section">
-        <h4>CharacterAI</h4>
-        <label for="cai_token">Token</label>
-        <input
-            type="password"
-            name="cai_token"
-            placeholder="characterai token"
-            bind:value={cai_token}
-        />
-    </div>
+  <Section name="Azure">
+    <TextField
+      label="API Key"
+      bind:value={azure_key}
+      password={true}
+      isVertical={true}
+    />
+    <TextField
+      label="Speech API Key"
+      bind:value={azure_speech_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
 
-    <div class="section">
-        <h4>Azure</h4>
-        <label for="azure_token">API Token</label>
-        <input
-            type="password"
-            name="azure_token"
-            placeholder="azure token"
-            bind:value={azure_token}
-        />
-        <label for="azure_region">Region</label>
-        <input
-            type="text"
-            name="azure_region"
-            placeholder="azure region"
-            bind:value={azure_region}
-        />
-    </div>
+  <Section name="DeepL">
+    <TextField
+      label="API Key"
+      bind:value={deepl_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
 
-    <div class="section">
-        <h4>Twitch</h4>
-        <label for="twitch_channel">Channel name</label>
-        <input
-            type="text"
-            name="twitch_channel"
-            placeholder="Channel name"
-            bind:value={twitch_channel}
-        />
+  <Section name="Anthropic (Claude)">
+    <TextField
+      label="API Key"
+      bind:value={anthropic_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
 
-        <label for="twitch_token">OAuth Token</label>
-        <input
-            type="password"
-            name="twitch_token"
-            placeholder="Twitch token"
-            bind:value={twitch_token}
-        />
+  <Section name="Google">
+    <TextField
+      label="API Key"
+      bind:value={google_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
 
-        <label for="twitch_clientid">Client ID</label>
-        <input
-            type="text"
-            name="twitch_clientid"
-            placeholder="Twitch client ID"
-            bind:value={twitch_clientid}
-        />
+  <Section name="PaLM">
+    <TextField
+      label="API Key"
+      bind:value={palm_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
 
-        <label for="twitch_secret">Client Secret</label>
-        <input
-            type="password"
-            name="twitch_secret"
-            placeholder="Twitch client secret"
-            bind:value={twitch_secret}
-        />
-    </div>
+  <Section name="Stability">
+    <TextField
+      label="API Key"
+      bind:value={stability_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
 
-    <br />
-    <div class="btn_container">
-        <button class="btn" on:click={save}>Save</button>
-        <span id="auth_update" style="opacity: 0;">Updated!</span>
-    </div>
+  <Section name="ElevenLabs">
+    <TextField
+      label="API Key"
+      bind:value={elevenlabs_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
+
+  <Section name="Cohere">
+    <TextField
+      label="API Key"
+      bind:value={cohere_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
+
+  <Section name="Perplexity">
+    <TextField
+      label="API Key"
+      bind:value={perplexity_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
+
+  <Section name="Speechify">
+    <TextField
+      label="API Key"
+      bind:value={speechify_key}
+      password={true}
+      isVertical={true}
+    />
+  </Section>
+</div>
+
+<div class="row">
+  <button
+    class="save-auth-button"
+    on:click={save_auth_config}
+    disabled={save_button_text !== "Save"}
+  >
+    {save_button_text}
+  </button>
 </div>
 
 <style>
-    .tab_content {
-        max-width: 100%;
-        max-height: 100%;
-        padding: 0 1em;
-        box-sizing: border-box;
-        overflow-y: auto;
-    }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+    gap: 12px;
+  }
 
-    .section {
-        margin-bottom: 2rem;
-        padding: 1rem;
-        border-radius: 5px;
-        background-color: #2a2a2a;
-    }
+  .row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
 
-    h3 {
-        margin-top: 0;
-    }
+  button {
+    padding: 8px 16px;
+    margin-right: 8px;
+    border-radius: 4px;
+    border: none;
+    background-color: var(--accent-color);
+    color: white;
+    cursor: pointer;
+  }
 
-    h4 {
-        margin-top: 0;
-        margin-bottom: 1rem;
-        color: #cccccc;
-    }
+  button:hover {
+    background-color: var(--accent-color-hover);
+  }
 
-    p {
-        margin-bottom: 1em;
-        color: #aaaaaa;
-    }
-
-    label {
-        display: block;
-        margin-bottom: 0.5em;
-        color: #dddddd;
-    }
-
-    input {
-        width: 100%;
-        padding: 0.5em;
-        margin-bottom: 1em;
-        background-color: #333333;
-        color: #ffffff;
-        border: 1px solid #444444;
-        border-radius: 3px;
-    }
-
-    input:focus {
-        outline: none;
-        border-color: #555555;
-    }
-
-    .btn_container {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-    }
-
-    .btn {
-        padding: 0.5em 1em;
-        margin-right: 1em;
-        background-color: #444444;
-        color: #ffffff;
-        border: none;
-        border-radius: 3px;
-        cursor: pointer;
-    }
-
-    .btn:hover {
-        background-color: #555555;
-    }
-
-    #auth_update {
-        color: #ffffff;
-        transition: opacity 0.3s ease;
-    }
-
-    .checkbox-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .checkbox-container label {
-        margin-left: 0.5rem;
-        margin-bottom: 0;
-    }
-
-    .hint-text {
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        color: #aaaaaa;
-    }
-
-    .hint-text p {
-        margin-bottom: 0.5rem;
-    }
+  button:disabled {
+    background-color: var(--accent-color-disabled);
+    cursor: not-allowed;
+  }
 </style>
