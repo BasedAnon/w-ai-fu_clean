@@ -7,6 +7,8 @@ export class Auth {
     "novelai" = {
         mail: "",
         password: "",
+        api_key: "",
+        use_api_key: false,
     };
     "openai" = {
         token: "",
