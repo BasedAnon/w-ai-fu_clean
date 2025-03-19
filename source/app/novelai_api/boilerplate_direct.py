@@ -5,7 +5,6 @@ import base64
 import json
 import logging
 import hashlib
-import argon2
 
 class DirectAPI:
     """Direct implementation of NovelAI API without using the SDK"""
@@ -37,33 +36,6 @@ class DirectAPI:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.session:
             await self.session.close()
-    
-    def _hash_password(self, password: str) -> str:
-        """Hash the password using Argon2"""
-        # NovelAI uses a specific salt and parameters
-        salt = "novel-ai".encode('utf-8')
-        time_cost = 2
-        memory_cost = 65536
-        parallelism = 1
-        
-        try:
-            # Use argon2 library if available
-            import argon2
-            hasher = argon2.PasswordHasher(
-                time_cost=time_cost,
-                memory_cost=memory_cost,
-                parallelism=parallelism,
-                hash_len=64,
-                salt_len=16
-            )
-            hashed = hasher.hash(password)
-            return hashed
-        except ImportError:
-            # Fallback: Use NovelAI's specific access key format
-            # This is a simplified version for compatibility
-            password_hash = hashlib.sha256(password.encode()).digest()
-            encoded = base64.b64encode(password_hash).decode('utf-8')
-            return encoded
     
     async def login(self):
         """Login to NovelAI and get access token"""

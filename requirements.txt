@@ -4,6 +4,5 @@ openai==0.27.0
 numpy==1.22.4
 matplotlib==3.5.3
 python-dotenv==1.0.0
-argon2-cffi==21.3.0
 # PyAudio is not included by default to avoid installation issues
 # It will be automatically installed by the install script
