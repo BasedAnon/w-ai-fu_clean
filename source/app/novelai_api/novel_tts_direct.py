@@ -1,6 +1,5 @@
 import os
 import sys
-import pyaudio  
 import wave
 import json
 import asyncio
@@ -8,17 +7,23 @@ import threading
 import uuid
 
 from websockets.sync.client import connect
-
 import subprocess
 
 from boilerplate_direct import DirectAPI
 
 os.system('title w-AI-fu NovelAI TTS Direct')
 
-audio = pyaudio.PyAudio()
+# Try to import PyAudio but don't fail if it's not available
+try:
+    import pyaudio
+    audio = pyaudio.PyAudio()
+    PYAUDIO_AVAILABLE = True
+except ImportError:
+    print("PyAudio not available. Audio output will be saved to files but not played.", file=sys.stderr)
+    PYAUDIO_AVAILABLE = False
+    audio = None
 
 device_index = 0
-
 interrupt_next = False
 
 async def handle(message, websocket):
@@ -51,14 +56,15 @@ async def prepare_generate(payload, websocket):
         if (len(e.args) < 2):
             print(e, file=sys.stderr)
             response = "ERROR UNDEFINED Could not get informations about this error. Sorry."
-        match e.args[1]:
-            case 401:
-                response = "ERROR WRONG_AUTH Missing or incorrect NovelAI mail and/or password."
-            case 502:
-                response = "ERROR RESPONSE_FAILURE API Responded with 502. Service may be down or temporary inaccessible."
-            case _:
-                print(e, file=sys.stderr)
-                response = "ERROR UNDEFINED " + str(e.args[2])
+        else:
+            match e.args[1]:
+                case 401:
+                    response = "ERROR WRONG_AUTH Missing or incorrect NovelAI mail and/or password."
+                case 502:
+                    response = "ERROR RESPONSE_FAILURE API Responded with 502. Service may be down or temporary inaccessible."
+                case _:
+                    print(e, file=sys.stderr)
+                    response = "ERROR UNDEFINED " + str(e.args[2] if len(e.args) > 2 else e)
     websocket.send(str(concurrent_id) + " " + response)
 
 async def prepare_play(payload, websocket):
@@ -66,7 +72,10 @@ async def prepare_play(payload, websocket):
     file_id = params["id"]
     options = params["options"]
     try:
-        play_tts(file_id=file_id, device=options["device"], volume_modifier=options["volume_modifier"])
+        result = play_tts(file_id=file_id, device=options["device"], volume_modifier=options["volume_modifier"])
+        if not result and not PYAUDIO_AVAILABLE:
+            print(f"Audio file generated but not played (PyAudio not available): audio/{file_id}.wav", file=sys.stderr)
+            print(f"To enable audio playback, install PyAudio manually.", file=sys.stderr)
     except Exception as e:
         print(e, file=sys.stderr)
     websocket.send("PLAY DONE")
@@ -88,15 +97,27 @@ async def generate_tts(speak, voice_seed)-> str:
 def play_tts(file_id, device = None, volume_modifier = 10):
     global audio, interrupt_next, device_index
     interrupt_next = False
+    
+    # Make sure the audio directory exists
+    if not os.path.exists('audio'):
+        os.makedirs('audio')
+    
     # Convert .mp3 to .wav
-    path = os.path.abspath(os.environ["CWD"] + '/bin/ffmpeg/ffmpeg.exe')
+    path = os.path.abspath(os.environ.get("CWD", ".") + '/bin/ffmpeg/ffmpeg.exe')
 
     if not os.path.isfile(path):
         print(f'Could not find ffmpeg at {path}. ffmpeg is not included in the w-AI-fu repository by default because of its size (> 100MB). If you cloned the repository, download the latest release instead: https://github.com/wAIfu-DEV/w-AI-fu/releases', file=sys.stderr)
+        return False
 
     p = subprocess.run([path, '-loglevel', 'quiet', '-y', '-i', f'audio/{file_id}.mp3', '-filter:a', f'volume={str(volume_modifier)}dB', f'audio/{file_id}.wav'])
-    #p.wait()
-
+    
+    if not PYAUDIO_AVAILABLE:
+        # Just keep the .wav file when PyAudio is not available
+        # but still return success - the TTS was successfully generated
+        # We'll just keep the mp3 file for reference
+        print(f"Generated audio file: audio/{file_id}.wav", file=sys.stderr)
+        return True
+    
     final_device = device_index
     if device != None:
         final_device = device
@@ -127,8 +148,14 @@ def play_tts(file_id, device = None, volume_modifier = 10):
     virtual_cable_stream.stop_stream()
     virtual_cable_stream.close()
     wave_file.close()
-    os.remove(f'audio/{file_id}.mp3')
-    os.remove(f'audio/{file_id}.wav')
+    
+    # Clean up files
+    try:
+        os.remove(f'audio/{file_id}.mp3')
+        os.remove(f'audio/{file_id}.wav')
+    except Exception as e:
+        print(f"Error removing audio files: {e}", file=sys.stderr)
+    
     return True
 
 def prep_handle(message, websocket):
@@ -140,7 +167,10 @@ def clear_audio_files():
         return
     dir_list = os.listdir('audio')
     for file in dir_list:
-        os.remove('audio/' + file)
+        try:
+            os.remove('audio/' + file)
+        except Exception as e:
+            print(f"Error removing audio file {file}: {e}", file=sys.stderr)
 
 async def main():
     clear_audio_files()

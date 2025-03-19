@@ -39,18 +39,27 @@ The application behaves the same as the original w-AI-fu but uses direct API cal
 
 By default, the application uses the direct API implementation. If you want to switch back to the SDK implementation, you can modify the `use_direct_api` flag in the `source/app/state/state.ts` file.
 
-### Voice Input
+### Audio Functionality
 
-Voice input has been disabled by default to avoid PyAudio installation issues. The application will only use text input. If you want to enable voice input in the future, you'll need to:
+- **Text-to-Speech (Output)**: The application will still generate audio via NovelAI's TTS system and convert it to WAV files. However, if PyAudio is not installed, the audio will be generated but not played through your speakers. The files will be saved to the `audio` directory.
 
-1. Uncomment and install the required packages in requirements.txt
-2. Download and install PyAudio manually from [Unofficial Windows Binaries](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio)
-3. Modify the dependency_loader.ts file to use InputSystemVoice when voice_input is true
+- **Voice Input (Input)**: Voice input has been disabled by default to avoid PyAudio installation issues. The application will only use text input.
+
+### Optional PyAudio Installation
+
+If you want full audio functionality (both input and output):
+
+1. Download and install PyAudio manually from [Unofficial Windows Binaries](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio)
+   ```
+   pip install path\to\downloaded\PyAudio-0.2.11-cp39-cp39-win_amd64.whl
+   ```
+2. To enable voice input, you'll need to modify the dependency_loader.ts file to use InputSystemVoice when voice_input is true
 
 ## Troubleshooting
 
 - If you encounter issues during installation, make sure Python 3.9 is installed and properly added to your PATH.
 - If the installation script cannot find Python 3.9, you may need to modify the INSTALL.bat file to point to your specific Python 3.9 installation path.
+- Make sure ffmpeg is installed (included in the w-AI-fu release) for audio conversion.
 
 ## Credits
 
